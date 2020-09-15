@@ -13,7 +13,8 @@ const localFns = require('../index');
 var commandSets = {
 	test: [
 		"parser",
-		"budgetClass"
+		"budgetClass",
+		"budgetClient"
 	]
 };
 
@@ -239,6 +240,7 @@ function budgetClientTest(arg) {
 		console.log('no credentials available for Google Cloud authentication');
 		return process.exit();
 	}
+	console.log('Google Cloud credentials provided');
 	return process.exit();
 }
 
@@ -261,6 +263,9 @@ switch (args[0]) {
 				break;
 			case 'budgetClass': 
 				budgetClassTest(args[2], args[3]);
+				break;
+			case 'budgetClient':
+				budgetClientTest(args[2]);
 				break;
 			case undefined:
 			case '-h':
