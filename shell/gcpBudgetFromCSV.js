@@ -236,7 +236,7 @@ function budgetClientTest(arg) {
 		return process.exit();
 	}
 	titleBlock("Result from Budget Client test:");
-	if (!process.env.GOOGLE_CLOUD_PROJECT || !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+	if (!process.env.GOOGLE_CLOUD_PROJECT && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
 		console.log('no credentials available for Google Cloud authentication');
 		return process.exit();
 	}
