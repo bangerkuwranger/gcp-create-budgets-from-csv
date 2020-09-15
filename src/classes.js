@@ -1,8 +1,8 @@
 'use strict';
 
 const excludeCreditsMap = new Map([
-	[true: "EXCLUDE_ALL_CREDITS"],
-	[false: "INCLUDE_ALL_CREDITS"]
+	[true, "EXCLUDE_ALL_CREDITS"],
+	[false, "INCLUDE_ALL_CREDITS"]
 ]);
 
 const useForecastedMap = new Map([
@@ -61,7 +61,7 @@ class Notifications {
 				this.monitoringNotificationChannels = channels;
 			}
 		}
-		if ('object' === typeof opts && null !=== opts) {}
+		if ('object' === typeof opts && null !== opts) {
 			if ('string' === typeof opts.pubSubTopic) {
 				this.pubSubTopic = opts.pubSubTopic;
 			}
@@ -209,14 +209,14 @@ class Budget {
 		// default to month over month if specified amount not provided as string
 		if ('string' !== typeof amount) {
 			this.amount = {
-				"lastPeriodAmount": {};
-			}
+				"lastPeriodAmount": {}
+			};
 		}
 		// if provided as string, create money object from specified budget amount
 		else {
 			this.amount = {
-				"specifiedAmount": new Money(amount, options.currency);
-			}
+				"specifiedAmount": new Money(amount, options.currency)
+			};
 		}
 		// add or change any options values if opts are passed
 		if ('object' === typeof opts && null !== opts) {
@@ -238,12 +238,12 @@ class Budget {
 		var setNotify = false;
 		var notifyObj = {
 			channels: null,
-			opts: {};
-		}
+			opts: {}
+		};
 		if ('string' === typeof notificationChannels || ('object' === typeof notificationChannels && Array.isArray(notificationChannels))) {
 			notifyObj.channels = notificationChannels;
 			setNotify = true;
-		}
+		};
 		if ('string' === typeof options.pubSub) {
 			notifyObj.opts.pubSubTopic = options.pubSub;
 			setNotify = true;
@@ -260,7 +260,7 @@ class Budget {
 
 module.exports = {
 	Threshold,
-	Notifications
+	Notifications,
 	Money,
 	BudgetFilter,
 	Budget
