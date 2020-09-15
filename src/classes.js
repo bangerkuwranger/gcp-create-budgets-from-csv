@@ -240,7 +240,7 @@ class Budget {
 			channels: null,
 			opts: {}
 		};
-		if ('string' === typeof notificationChannels || ('object' === typeof notificationChannels && Array.isArray(notificationChannels))) {
+		if ('string' === typeof notificationChannels || ('object' === typeof notificationChannels && Array.isArray(notificationChannels) && notificationChannels.length > 0)) {
 			notifyObj.channels = notificationChannels;
 			setNotify = true;
 		};
