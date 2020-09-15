@@ -3,9 +3,12 @@
 const path = require('path');
 const fs = require('fs-extra');
 const readline = require('readline');
+const localFns = require('../index');
 
 var commandSets = {
-
+	test: [
+		"parser"
+	]
 };
 
 // outputs array of objects as table with properly spaced headers for each obj property and index for each element
@@ -150,3 +153,39 @@ function titleBlock(title) {
 	console.log(titleLine);
 
 }
+
+// Command functions
+
+//test csv parser and view result object
+//usage:
+//	gcpBudgetFromCSV.js test parser filePath
+function parserTest(filePath) {
+	if ('undefined' !== typeof filePath && ('-h' === filePath || '--help' === filePath || 'help' === filePath)) {
+		actionHelp("test parser", 'Test CSV parser by parsing file at specified filePath and displaying resulting object.', '[filePath]');
+		return process.exit();
+	}
+	if ('string' !== typeof filePath || '' === filePath) {
+		console.log('No filePath defined.');
+		return process.exit();
+	}
+	var parsedData, csvStr;
+	try {
+		csvStr = fs.readFileSync(filePath).toString();
+	}
+	catch(e) {
+		console.log(e.message);
+		return process.exit();
+	}
+	try {
+		parsedData = localFns.parseCSVTest(csvStr);
+	}
+	catch(e) {
+		console.log(e.message);
+		return process.exit();
+	}
+	titleBlock("Result from parsing file '" + filePath + "':");
+	console.log(parsedData);
+	return process.exit();
+}
+
+// Input Processing
