@@ -102,7 +102,7 @@ class Money {
 class BudgetFilter {
 	constructor(scopes, excludeCredits) {
 		this.isValid = false;
-		if ('object' === typeof scopes && Array.isArray(scopes) && scopes.length < 1) {
+		if ('object' === typeof scopes && Array.isArray(scopes) && scopes.length > 0) {
 			this.isValid = true;
 			if ('boolean' === typeof excludeCredits) {
 				this.creditTypesTreatment = excludeCreditsMap.get(excludeCredits);
@@ -112,6 +112,7 @@ class BudgetFilter {
 			var filterSubaccounts = [];
 			var filterLabels = [];
 			var validScopes = getValidScopeTypes();
+			this.filters = [];
 			for (let i = 0; i < scopes.length; i++) {
 				let thisScope = scopes[i];
 				if (-1 !== validScopes.indexOf(thisScope.type)) {
@@ -143,17 +144,37 @@ class BudgetFilter {
 				if ((i + 1) >= scopes.length) {
 					if (filterServices.length > 0) {
 						this.services = filterServices;
+						this.filters.push('services');
 					}
 					if (filterProjects.length > 0) {
 						this.projects = filterProjects;
+						this.filters.push('projects');
 					}
 					if (filterSubaccounts.length > 0) {
 						this.subaccounts = filterSubaccounts;
+						this.filters.push('subaccounts');
 					}
 					if (filterLabels.length > 0) {
 						this.labels = filterLabels;
+						this.filters.push('labels');
 					}
 				}
+			}
+		}
+	}
+	
+	getGenericObj() {
+		var genericBudgetFilter = {};
+		if ('string' === typeof this.creditTypesTreatment) {
+			genericBudgetFilter.creditTypesTreatment = this.creditTypesTreatment;
+		}
+		if (0 === this.filters.length) {
+			return genericBudgetFilter;
+		}
+		for (let i = 0; i < this.filters.length; i++) {
+			genericBudgetFilter[this.filters[i]] = this[this.filters[i]];
+			if ((i + 1) >= this.filters.length) {
+				return genericBudgetFilter;
 			}
 		}
 	}
@@ -223,11 +244,22 @@ class Budget {
 			if ('string' === typeof opts.currency) {
 				options.currency = opts.currency.substring(0, 3).toUpperCase();
 			}
-			
+			if ('boolean' === typeof opts.disableDefault) {
+				options.disableDefault = opts.disableDefault;
+			}
+			if ('boolean' === typeof opts.excludeCredits) {
+				options.excludeCredits = opts.excludeCredits;
+			}
+			if ('string' === typeof opts.pubSub && '' !== opts.pubSub) {
+				options.pubSub = opts.pubSub;
+			}
 		}
 		// generate filter using any provided scopes
 		if ('object' === typeof scopes && Array.isArray(scopes)) {
-			this.BudgetFilter = new BudgetFilter(scopes, options.excludeCredits);
+			let theBudgetFilter = new BudgetFilter(scopes, options.excludeCredits);
+			if (theBudgetFilter.isValid) {
+				this.budgetFilter = theBudgetFilter.getGenericObj();
+			}
 		}
 		// generate thresholdRules using any provided thresholds
 		if ('object' === typeof thresholds && Array.isArray(thresholds)) {
