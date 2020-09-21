@@ -306,6 +306,9 @@ function parseJsonFile(filePath) {
 	catch(e) {
 		return e;
 	}
+	if (parsedData.errors.length > 0) {
+		return parsedData.errors;
+	}
 	return parsedData.data;
 }
 
@@ -327,7 +330,11 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 		return e;
 	}
 	try {
-		parsedData = Papa.parse(csvStr, getDefaultParserSettings()).data;
+		var parsedDataObj = Papa.parse(csvStr, getDefaultParserSettings());
+		if (parsedDataObj.errors.length > 0) {
+			errorArray = errorArray.concat(parsedDataObj.errors);
+		}
+		parsedData = parsedDataObj.data;
 	}
 	//return error if cannot parse data from budget file
 	catch(e) {
@@ -343,7 +350,7 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 	//if provided, try to read file at thresholdFilePath
 	if ('string' === typeof thresholdFilePath && '' !== thresholdFilePath) {
 		try {
-			thresholdStr = fs.readFileSync(thresholdFilePath);
+			thresholdStr = fs.readFileSync(thresholdFilePath).toString();
 		}
 		catch(e) {
 			e.message = 'Attempt to read thresholdFilePath file failed: ' + e.message;
@@ -359,7 +366,11 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 	//if data couldn't be read, or file not provided, or parse fails, use default thresholds
 	if (thresholdStr !== null) {
 		try {
-			parsedThresholds = Papa.parse(thresholdStr, getDefaultParserSettings()).data;
+			var parsedThresholdsData = Papa.parse(thresholdStr, getDefaultParserSettings());
+			if (parsedThresholdsData.errors.length > 0) {
+				errorArray = errorArray.concat(parsedThresholdsData.errors);
+			}
+			parsedThresholds = parsedThresholdsData.data;
 		}
 		catch(e) {
 			e.message = 'Attempt to parse thresholdFilePath file failed: ' + e.message;
@@ -375,16 +386,21 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 	budgetObjArray = [];
 	for (let i = 0; i < parsedData.length; i++) {
 		let thisArgs = parsedData[i];
+		var localThresh;
 		//attempt to parse thresholds from filepath given in budget line item if given
 		if ('string' !== typeof thisArgs.thresholds || '' === thisArgs.thresholds) {
 			if ('string' === typeof thisArgs.thresholds_filepath && '' !== thisArgs.thresholds_filepath) {
-				let localThresh = parseJsonFile(thisArgs.thresholds_filepath);
+				localThresh = parseJsonFile(thisArgs.thresholds_filepath);
 				if ('object' !== typeof localThresh) {
 					errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
 					thisArgs.thresholds = parsedThresholds;
 				}
 				else if (localThresh instanceof Error) {
 					errorArray.push(localThresh);
+					thisArgs.thresholds = parsedThresholds;
+				}
+				else if (localThresh[0] instanceof Error) {
+					errorArray = errorArray.concat(localThresh.errors);
 					thisArgs.thresholds = parsedThresholds;
 				}
 				else {
@@ -396,15 +412,14 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 			}
 		}
 		else if ('string' === typeof thisArgs.thresholds && '' !== thisArgs.thresholds) {
-			var thisThresh;
 			try {
-				thisThresh = JSON.parse(thisArgs.thresholds);
+				localThresh = JSON.parse(thisArgs.thresholds);
 			}
 			catch(e) {
 				errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
-				thisThresh = parsedThresholds;
+				localThresh = parsedThresholds;
 			}
-			thisArgs.thresholds = thisThresh;
+			thisArgs.thresholds = localThresh;
 			
 		}
 		else {

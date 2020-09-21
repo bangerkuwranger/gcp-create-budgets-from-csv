@@ -24,8 +24,8 @@ class Threshold {
 		this.thresholdPercent = ('number' === typeof percent && percent >= 0) ?
 			percent :
 			100;
-		this.spendBasis = ('boolean' === typeof useForecasted) ?
-			useForecastedMap.get(useForecasted) :
+		this.spendBasis = (('boolean' === typeof useForecasted && useForecasted) || ('string' === typeof useForecasted && 'false' !== useForecasted.toLowerCase())) ?
+			useForecastedMap.get(true) :
 			useForecastedMap.get(false);
 	}
 }
@@ -38,7 +38,7 @@ class ThresholdRules {
 	getAllRules() {
 		var allRules = [];
 		for (let i = 0; i < this.rulesArray.length; i++) {
-			let thisRule = new Threshold(this.rulesArray[i]);
+			let thisRule = new Threshold(parseFloat(this.rulesArray[i].percentage), this.rulesArray[i].use_forecasted);
 			allRules.push(thisRule);
 			if ((i + 1) >= this.rulesArray.length) {
 				return allRules;
