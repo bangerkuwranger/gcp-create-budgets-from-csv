@@ -1,6 +1,7 @@
 'use strict';
 
 const util = require('util');
+const fs = require('fs-extra');
 const Str = require('@supercharge/strings');
 
 // GCP Budget API client
@@ -116,12 +117,16 @@ const getTestBudgetJSON = function() {
 	return '[{"display_name": "your_project_123456","scope_type": "project","scope_id": "your_project_123456","budget_amt": "1000.00","thresholds_filepath": "","pubSubTopic": "projects/your_project_123456/topics/your_topic_97654","notification_channel_1": "budget_alerts@yourorg.com","notification_channel_2": "15555555555","notification_channel_3": "","notification_channel_4": "","notification_channel_5": ""}]';
 };
 
-function makeSingleScopeBudget(inputData) {
+
+function makeSingleScopeBudget(inputData, returnDebug) {
 	if ('object' !== typeof inputData || null === inputData) {
 		throw new TypeError('Invalid inputData arg passed to makeSingleScopeBudget');
 	}
 	else if ('string' !== typeof inputData.scope_type || '' === inputData.scope_type || ('label' !== inputData.scope_type && ('string' !== typeof inputData.scope_id || '' === inputData.scope_id)) || ('label' === inputData.scope_type && ('string' !== typeof inputData.scope_key || '' === inputData.scope_key || 'string' !== typeof inputData.scope_value || '' === inputData.scope_value))) {
 		throw new TypeError('Invalid scope definition in inputData passed to makeSingleScopeBudget');
+	}
+	if ('boolean' !== typeof returnDebug) {
+		returnDebug = false;
 	}
 	var resultObj, name, amount, scopes, thresholds, notificationChannels, opts, useOpts = false;
 	var isLabel = 'label' === inputData.scope_type;
@@ -181,18 +186,23 @@ function makeSingleScopeBudget(inputData) {
 			pubSub: inputData.pubSubTopic
 		};
 	}
-	resultObj = {
-		args: {
-			name,
-			amount,
-			scopes,
-			thresholds,
-			notificationChannels,
-			opts: useOpts ? opts : null
-		}
-	};
-	resultObj.result = new LocalClasses.Budget(resultObj.args.name, resultObj.args.amount, resultObj.args.scopes, resultObj.args.thresholds, resultObj.args.notificationChannels, resultObj.args.opts);
-	return resultObj;
+	if (returnDebug) {
+		resultObj = {
+			args: {
+				name,
+				amount,
+				scopes,
+				thresholds,
+				notificationChannels,
+				opts: useOpts ? opts : null
+			}
+		};
+		resultObj.result = new LocalClasses.Budget(resultObj.args.name, resultObj.args.amount, resultObj.args.scopes, resultObj.args.thresholds, resultObj.args.notificationChannels, resultObj.args.opts);
+		return resultObj;
+	}
+	else {
+		return new LocalClasses.Budget(resultObj.args.name, resultObj.args.amount, resultObj.args.scopes, resultObj.args.thresholds, resultObj.args.notificationChannels, resultObj.args.opts);
+	}
 }
 
 function parseCSVTest(csvStr) {
@@ -229,7 +239,204 @@ function budgetClassTest(budgetStr, thresholdStr) {
 	}
 }
 
+// create client and call listBudgets, return error, result to callback function
+function getBudgetList(parentId, callback) {
+	var reqObj = {};
+	const budget = new BudgetServiceClient();
+	if ('function' !== typeof callback) {
+		return callback(new TypeError('Invalid callback passed to getBudgetList'));
+	}
+	else {
+		if ('string' === typeof parentId && '' !== parentId) {
+			reqObj.parent = parentId;
+		}
+		return budget.listBudgets(reqObj, callback);
+	}
+}
+
+function createSingleBudget(budgetObj) {
+	const budget = new BudgetServiceClient();
+	// returns a PROMISE!
+	return budget.createBudget(budgetObj);
+}
+
+function createBudgetsFromArray(arrayOfBudgetObjs) {
+	//returns Promise resolved with array of results or rejected with error
+	return Promise.all(arrayOfBudgetObjs.map(budgetObj => createSingleBudget(budgetObj)));
+}
+
+//throws an error if arg is not a valid array of budget object args
+function assertBudgetInputArrayIsValid(biArr) {
+	if ('object' !== typeof biArr || !(Array.isArray(biArr))) {
+		throw new TypeError('Invalid Budget Input Array: must be an Array');
+	}
+	else if (biArr.length < 1) {
+		throw new TypeError('Invalid Budget Input Array: Array must not be empty');
+	}
+	else {
+		var valArr = biArr.map((argObj, idx) => {
+			if ('object' !== typeof argObj || null === argObj) {
+				throw new TypeError('Invalid Budget Input Array: element ' + idx + 'is not an object');
+			}
+			if ('string' !== typeof argObj.scope_type || '' === argObj.scope_type) {
+				throw new TypeError('Invalid Budget Input Array: element ' + idx + 'is missing scope_type');
+			}
+			if ('label' === argObj.scope_type && ('string' !== typeof argObj.scope_key || '' === argObj.scope_key || 'string' !== typeof argObj.scope_value || '' === argObj.scope_value)) {
+				throw new TypeError('Invalid Budget Input Array: element ' + idx + 'is label and missing key/value pair');
+			}
+			if ('label' !== argObj.scope_type && ('string' !== typeof argObj.scope_id || '' === argObj.scope_id)) {
+				throw new TypeError('Invalid Budget Input Array: element ' + idx + 'is not label and missing scope_id');
+			}
+		});
+	}
+	return true;
+}
+
+function parseJsonFile(filePath) {
+	var fileData, parsedData;
+	try {
+		fileData = fs.readFileSync(filePath);
+	}
+	catch(e) {
+		return e;
+	}
+	try {
+		parsedData = Papa.parse(fileData, getDefaultParserSettings());
+	}
+	catch(e) {
+		return e;
+	}
+	return parsedData;
+}
+
+function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
+	//return error if no file provided for budgets
+	if ('string' !== typeof budgetFilePath || '' === budgetFilePath) {
+		return new TypeError('Invalid filePath provided for budget csv');
+	}
+	if ('boolean' !== typeof returnDebug) {
+		returnDebug = false;
+	}
+	var parsedData, csvStr, thresholdStr, parsedThresholds, budgetObjArray, errorArray = [];
+	try {
+		csvStr = fs.readFileSync(budgetFilePath).toString();
+	}
+	//return error if cannot read budget file
+	catch(e) {
+		e.message = 'Attempt to read budgetFilePath file failed: ' + e.message;
+		return e;
+	}
+	try {
+		parsedData = Papa.parse(csvStr, getDefaultParserSettings()).data;
+	}
+	//return error if cannot parse data from budget file
+	catch(e) {
+		e.message = 'Attempt to parse budgetFilePath file failed: ' + e.message;
+		return e;
+	}
+	try {
+		assertBudgetInputArrayIsValid(parsedData);
+	}
+	catch(e) {
+		return e;
+	}
+	//if provided, try to read file at thresholdFilePath
+	if ('string' === typeof thresholdFilePath && '' !== thresholdFilePath) {
+		try {
+			thresholdStr = fs.readFileSync(thresholdFilePath);
+		}
+		catch(e) {
+			e.message = 'Attempt to read thresholdFilePath file failed: ' + e.message;
+			console.warn(e);
+			errorArray.push(e);
+			thresholdStr = null;
+		}
+	}
+	else {
+		thresholdStr = null;
+	}
+	//if valid data could be read from thresholdFilePath, try parsing JSON
+	//if data couldn't be read, or file not provided, or parse fails, use default thresholds
+	if (thresholdStr !== null) {
+		try {
+			parsedThresholds = Papa.parse(thresholdStr, getDefaultParserSettings()).data;
+		}
+		catch(e) {
+			e.message = 'Attempt to parse thresholdFilePath file failed: ' + e.message;
+			console.warn(e);
+			errorArray.push(e);
+			parsedThresholds = getDefaultThresholds();
+		}
+	}
+	else {
+		parsedThresholds = getDefaultThresholds();
+	}
+	// create array of objs for each budget array item from input
+	budgetObjArray = [];
+	for (let i = 0; i < parsedData.length; i++) {
+		let thisArgs = parsedData[i];
+		//attempt to parse thresholds from filepath given in budget line item if given
+		if ('object' !== typeof thisArgs.thresholds || !(Array.isArray(thisArgs.thresholds))) {
+			if ('string' === typeof thisArgs.thresholds_filepath && '' !== thisArgs.thresholds_filepath) {
+				let localThresh = parseJsonFile(thisArgs.thresholds_filepath).data;
+				if ('object' !== typeof localThresh) {
+					errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
+					thisArgs.thresholds = parsedThresholds;
+				}
+				else if (localThresh instanceof Error) {
+					errorArray.push(localThresh);
+					thisArgs.thresholds = parsedThresholds;
+				}
+				else {
+					thisArgs.thresholds = localThresh;
+				}
+			}
+		}
+		else {
+			thisArgs.thresholds = parsedThresholds;
+		}
+		try {
+			budgetObjArray.push(makeSingleScopeBudget(thisArgs, returnDebug));
+		}
+		catch(e) {
+			errorArray.push(e);
+		}
+		if ((i + 1) >= parsedData.length) {
+			return {
+				budgets: budgetObjArray,
+				errors: errorArray
+			}
+		}
+	}
+}
+
+function createBudgetsFromCsv(budgetsCsv, thresholdCsv) {
+	var budgetsAndErrors = parseCsvToBudgets(budgetsCsv, thresholdCsv);
+	return new Promise((resolve, reject) => {
+		if (budgetsAndErrors.budgets.length < 1) {
+			if (budgetsAndErrors.errors.length < 1) {
+				return reject(new Error('Unable to create budget objects for... reasons'));
+			}
+			else {
+				return reject(budgetsAndErrors.errors);
+			}
+		}
+		else {
+			return createBudgetsFromArray(budgetsAndErrors.budgets)
+			.then((resArr) => {
+				return resolve(resArr);
+			})
+			.catch((e) => {
+				return reject(e);
+			});
+		}
+	});
+}
+
 module.exports = {
 	parseCSVTest,
-	budgetClassTest
+	budgetClassTest,
+	getBudgetList,
+	parseCsvToBudgets,
+	createBudgetsFromCsv
 }
