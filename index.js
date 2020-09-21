@@ -132,11 +132,11 @@ function makeSingleScopeBudget(inputData, returnDebug) {
 	var isLabel = 'label' === inputData.scope_type;
 	if ('string' !== typeof inputData.display_name || '' === inputData.display_name) {
 		name = isLabel ?
-			'label_' + inputData.scope_key + '_' + inputData.scope_value + '_budget' + Str.random(8) :
-			inputData.scope_type + '_' + inputData.scope_id + '_budget' + Str.random(8);
+			'label_' + inputData.scope_key + '_' + inputData.scope_value + '_budget_' + Str.random(8) :
+			inputData.scope_type + '_' + inputData.scope_id + '_budget_' + Str.random(8);
 	}
 	else {
-		name = inputData.display_name;
+		name = inputData.display_name + '_' + Str.random(8);
 	}
 	if ('string' !== typeof inputData.budget_amt || '' === inputData.budget_amt || Number.isNaN(parseFloat(inputData.budget_amt))) {
 		amount = null;
@@ -295,7 +295,7 @@ function assertBudgetInputArrayIsValid(biArr) {
 function parseJsonFile(filePath) {
 	var fileData, parsedData;
 	try {
-		fileData = fs.readFileSync(filePath);
+		fileData = fs.readFileSync(filePath).toString();
 	}
 	catch(e) {
 		return e;
@@ -306,7 +306,7 @@ function parseJsonFile(filePath) {
 	catch(e) {
 		return e;
 	}
-	return parsedData;
+	return parsedData.data;
 }
 
 function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
@@ -376,9 +376,9 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 	for (let i = 0; i < parsedData.length; i++) {
 		let thisArgs = parsedData[i];
 		//attempt to parse thresholds from filepath given in budget line item if given
-		if ('object' !== typeof thisArgs.thresholds || !(Array.isArray(thisArgs.thresholds))) {
+		if ('string' !== typeof thisArgs.thresholds || '' === thisArgs.thresholds) {
 			if ('string' === typeof thisArgs.thresholds_filepath && '' !== thisArgs.thresholds_filepath) {
-				let localThresh = parseJsonFile(thisArgs.thresholds_filepath).data;
+				let localThresh = parseJsonFile(thisArgs.thresholds_filepath);
 				if ('object' !== typeof localThresh) {
 					errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
 					thisArgs.thresholds = parsedThresholds;
@@ -391,6 +391,21 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 					thisArgs.thresholds = localThresh;
 				}
 			}
+			else {
+				thisArgs.thresholds = parsedThresholds;
+			}
+		}
+		else if ('string' === typeof thisArgs.thresholds && '' !== thisArgs.thresholds) {
+			var thisThresh;
+			try {
+				thisThresh = JSON.parse(thisArgs.thresholds);
+			}
+			catch(e) {
+				errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
+				thisThresh = parsedThresholds;
+			}
+			thisArgs.thresholds = thisThresh;
+			
 		}
 		else {
 			thisArgs.thresholds = parsedThresholds;
