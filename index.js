@@ -201,7 +201,7 @@ function makeSingleScopeBudget(inputData, returnDebug) {
 		return resultObj;
 	}
 	else {
-		return new LocalClasses.Budget(resultObj.args.name, resultObj.args.amount, resultObj.args.scopes, resultObj.args.thresholds, resultObj.args.notificationChannels, resultObj.args.opts);
+		return new LocalClasses.Budget(name, amount, scopes, thresholds, notificationChannels, useOpts ? opts : null);
 	}
 }
 
