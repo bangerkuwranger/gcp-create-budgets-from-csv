@@ -303,7 +303,7 @@ function createBudgets(budgetsCsvPath, thresholdsCsvPath) {
 		return process.exit();
 	}
 	titleBlock("Result from createBudgets:");
-	createBudgetsFromCsv(budgetsCsvPath, thresholdsCsvPath)
+	localFns.createBudgetsFromCsv(budgetsCsvPath, thresholdsCsvPath)
 	.then((results) => {
 		console.log(util.inspect(results, {showHidden: false, depth: null}));
 		return process.exit();
