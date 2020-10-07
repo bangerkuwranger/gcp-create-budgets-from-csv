@@ -446,9 +446,10 @@ function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv) {
 	}
 	return new Promise((resolve, reject) => {
 		var budgetsAndErrors = parseCsvToBudgets(budgetsCsv, thresholdCsv);
-		if (budgetsAndErrors.budgets.length < 1) {
+		if (!budgetsAndErrors || !budgetsAndErrors.budgets || budgetsAndErrors.budgets.length < 1) {
 			if (budgetsAndErrors.errors && Array.isArray(budgetsAndErrors.errors) && budgetsAndErrors.errors.length < 1) {
-				return reject(new Error('Unable to create budget objects for... reasons'));
+// 				return reject(new Error('Unable to create budget objects for... reasons'));
+				return reject(budgetsAndErrors);
 			}
 			else {
 				return reject(budgetsAndErrors.errors);
