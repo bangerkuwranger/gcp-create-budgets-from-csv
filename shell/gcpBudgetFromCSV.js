@@ -249,8 +249,12 @@ function budgetClientTest(arg) {
 		return process.exit();
 	}
 	console.log('Google Cloud credentials provided...');
-	var parentId = 'string' === typeof arg ? arg : null;
-	localFns.getBudgetList(null, (er, res) => {
+	var parentId =  ? arg : null;
+	var reqObj = {};
+	if ('string' === typeof arg) {
+		reqObj.parent = arg;
+	}
+	localFns.getBudgetList(reqObj, (er, res) => {
 		if (er) {
 			console.log(util.inspect(er, {showHidden: false, depth: null}));
 			return process.exit();
