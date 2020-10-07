@@ -444,8 +444,8 @@ function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv) {
 	if ('string' !== typeof parentId || '' === parentId) {
 		return Promise.reject(new Error('invalid parentId passed to createBudgetsFromCsv; must be string in format "billingAccounts/000000-000000-000000"'));
 	}
-	var budgetsAndErrors = parseCsvToBudgets(budgetsCsv, thresholdCsv);
 	return new Promise((resolve, reject) => {
+		var budgetsAndErrors = parseCsvToBudgets(budgetsCsv, thresholdCsv);
 		if (budgetsAndErrors.budgets.length < 1) {
 			if (budgetsAndErrors.errors && Array.isArray(budgetsAndErrors.errors) && budgetsAndErrors.errors.length < 1) {
 				return reject(new Error('Unable to create budget objects for... reasons'));
