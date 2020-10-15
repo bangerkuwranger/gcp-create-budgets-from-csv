@@ -303,13 +303,12 @@ function createBudgets(parentId, budgetsCsvPath, thresholdsCsvPath) {
 		return process.exit();
 	}
 	titleBlock("Result from createBudgets:");
-	localFns.createBudgetsFromCsv(parentId, budgetsCsvPath, thresholdsCsvPath)
-	.then((results) => {
+	return localFns.createBudgetsFromCsv(parentId, budgetsCsvPath, thresholdsCsvPath, (error, results) => {
+		if (error) {
+			console.log(util.inspect(e, {showHidden: false, depth: null}));
+			return process.exit();
+		}
 		console.log(util.inspect(results, {showHidden: false, depth: null}));
-		return process.exit();
-	})
-	.catch((e) => {
-		console.log(util.inspect(e, {showHidden: false, depth: null}));
 		return process.exit();
 	});
 }
