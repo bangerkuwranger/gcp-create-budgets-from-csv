@@ -340,9 +340,9 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 		}
 		returnDebug = false;
 	}
-	if ('function' !== typeof pctbCallback) (
+	if ('function' !== typeof pctbCallback) {
 		throw new TypeError('invalid callback passed to parseCsvToBudgets');
-	)
+	}
 	//return error if no file provided for budgets
 	if ('string' !== typeof budgetFilePath || '' === budgetFilePath) {
 		return setImmediate(callback, [new TypeError('Invalid filePath provided for budget csv')]);
