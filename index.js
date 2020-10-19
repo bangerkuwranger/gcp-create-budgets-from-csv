@@ -309,7 +309,7 @@ function assertBudgetInputArrayIsValid(biArr) {
 function parseJsonFile(filePath) {
 	var fileData, parsedData;
 	try {
-		fileData = fs.readFileSync(filePath).toString();
+		fileData = fs.readFileSync(filePath).toString().trim();
 	}
 	catch(e) {
 		return e;
@@ -349,7 +349,7 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 	}
 	var parsedData, csvStr, thresholdStr, parsedThresholds, budgetObjArray, errorArray = [];
 	try {
-		csvStr = fs.readFileSync(budgetFilePath).toString();
+		csvStr = fs.readFileSync(budgetFilePath).toString().trim();
 	}
 	//return error if cannot read budget file
 	catch(e) {
@@ -377,7 +377,7 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 	//if provided, try to read file at thresholdFilePath
 	if ('string' === typeof thresholdFilePath && '' !== thresholdFilePath) {
 		try {
-			thresholdStr = fs.readFileSync(thresholdFilePath).toString();
+			thresholdStr = fs.readFileSync(thresholdFilePath).toString().trim();
 		}
 		catch(e) {
 			e.message = 'Attempt to read thresholdFilePath file failed: ' + e.message;
