@@ -459,13 +459,12 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 			errorArray.push(e);
 		}
 		if ((i + 1) >= parsedData.length) {
-			return setImmediate(pctbCallback, [
-					(errorArray.length > 0), 
-					{
-						budgets: budgetObjArray,
-						errors: errorArray
-					}
-				]
+			return setImmediate(pctbCallback,
+				(errorArray.length > 0), 
+				{
+					budgets: budgetObjArray,
+					errors: errorArray
+				}
 			);
 		}
 	}
@@ -611,7 +610,6 @@ function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv, callback) {
 		parseCsvToBudgets(budgetsCsv, thresholdCsv, (error, budgetsAndErrors) => {
 			if (error) {
 				if ('Error' === typeof error) {
-	// 				return reject(new E);
 					return cbfcCallback(error, budgetsAndErrors);
 				}
 				else {
