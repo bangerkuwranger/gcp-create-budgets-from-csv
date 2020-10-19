@@ -609,7 +609,7 @@ function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv, callback) {
 	else {
 		parseCsvToBudgets(budgetsCsv, thresholdCsv, (error, budgetsAndErrors) => {
 			if (error) {
-				if ('Error' === typeof error) {
+				if (error instanceof Error) {
 					return cbfcCallback(error, budgetsAndErrors);
 				}
 				else {
