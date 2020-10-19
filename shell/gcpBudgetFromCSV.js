@@ -305,7 +305,13 @@ function createBudgets(parentId, budgetsCsvPath, thresholdsCsvPath) {
 	titleBlock("Result from createBudgets:");
 	return localFns.createBudgetsFromCsv(parentId, budgetsCsvPath, thresholdsCsvPath, (error, results) => {
 		if (error) {
-			console.log(util.inspect(e, {showHidden: false, depth: null}));
+			if (error instanceof Error) {
+				console.log(util.inspect(error, {showHidden: false, depth: null}));
+			}
+			if ('object' === typeof results && null !== results && 'object' === typeof results.errors) {
+				console.log("known errors: \n");
+				console.log(util.inspect(results.errors, {showHidden: false, depth: null}))
+			}
 			return process.exit();
 		}
 		console.log(util.inspect(results, {showHidden: false, depth: null}));
