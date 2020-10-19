@@ -345,7 +345,7 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 	}
 	//return error if no file provided for budgets
 	if ('string' !== typeof budgetFilePath || '' === budgetFilePath) {
-		return setImmediate(callback, [new TypeError('Invalid filePath provided for budget csv')]);
+		return setImmediate(callback, new TypeError('Invalid filePath provided for budget csv'), null);
 	}
 	var parsedData, csvStr, thresholdStr, parsedThresholds, budgetObjArray, errorArray = [];
 	try {
@@ -354,7 +354,7 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 	//return error if cannot read budget file
 	catch(e) {
 		e.message = 'Attempt to read budgetFilePath file failed: ' + e.message;
-		return setImmediate(pctbCallback, [e, null]);
+		return setImmediate(pctbCallback, e, null);
 	}
 	try {
 		var parsedDataObj = Papa.parse(csvStr, getDefaultParserSettings());
@@ -366,13 +366,13 @@ function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug, callb
 	//return error if cannot parse data from budget file
 	catch(e) {
 		e.message = 'Attempt to parse budgetFilePath file failed: ' + e.message;
-		return setImmediate(pctbCallback, [e, null]);
+		return setImmediate(pctbCallback, e, null);
 	}
 	try {
 		assertBudgetInputArrayIsValid(parsedData);
 	}
 	catch(e) {
-		return setImmediate(pctbCallback, [e, null]);
+		return setImmediate(pctbCallback, e, null);
 	}
 	//if provided, try to read file at thresholdFilePath
 	if ('string' === typeof thresholdFilePath && '' !== thresholdFilePath) {
@@ -604,7 +604,7 @@ function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv, callback) {
 		throw new TypeError('invalid callback passed to createBudgetsFromCsv');
 	}
 	else if ('string' !== typeof parentId || '' === parentId) {
-		return setImmediate(callback, [new Error('invalid parentId passed to createBudgetsFromCsv; must be string in format "billingAccounts/000000-000000-000000"')]);
+		return setImmediate(callback, new Error('invalid parentId passed to createBudgetsFromCsv; must be string in format "billingAccounts/000000-000000-000000"'));
 	}
 	else {
 		parseCsvToBudgets(budgetsCsv, thresholdCsv, (error, budgetsAndErrors) => {
