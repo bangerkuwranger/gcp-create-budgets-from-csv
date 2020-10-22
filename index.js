@@ -315,129 +315,131 @@ function parseJsonFile(filePath) {
 function parseCsvToBudgets(budgetFilePath, thresholdFilePath, returnDebug) {
 	//return error if no file provided for budgets
 	if ('string' !== typeof budgetFilePath || '' === budgetFilePath) {
-		return new TypeError('Invalid filePath provided for budget csv');
+		return Promise.reject(new TypeError('Invalid filePath provided for budget csv'));
 	}
 	if ('boolean' !== typeof returnDebug) {
 		returnDebug = false;
 	}
 	var parsedData, csvStr, thresholdStr, parsedThresholds, budgetObjArray, errorArray = [];
-	try {
-		csvStr = fs.readFileSync(budgetFilePath).toString();
-	}
-	//return error if cannot read budget file
-	catch(e) {
-		e.message = 'Attempt to read budgetFilePath file failed: ' + e.message;
-		return e;
-	}
-	try {
-		var parsedDataObj = Papa.parse(csvStr, getDefaultParserSettings());
-		if (parsedDataObj.errors.length > 0) {
-			errorArray = errorArray.concat(parsedDataObj.errors);
-		}
-		parsedData = parsedDataObj.data;
-	}
-	//return error if cannot parse data from budget file
-	catch(e) {
-		e.message = 'Attempt to parse budgetFilePath file failed: ' + e.message;
-		return e;
-	}
-	try {
-		assertBudgetInputArrayIsValid(parsedData);
-	}
-	catch(e) {
-		return e;
-	}
-	//if provided, try to read file at thresholdFilePath
-	if ('string' === typeof thresholdFilePath && '' !== thresholdFilePath) {
+	return new Promise((resolve, reject) => {
 		try {
-			thresholdStr = fs.readFileSync(thresholdFilePath).toString();
+			csvStr = fs.readFileSync(budgetFilePath).toString();
+		}
+		//return error if cannot read budget file
+		catch(e) {
+			e.message = 'Attempt to read budgetFilePath file failed: ' + e.message;
+			return reject(e);
+		}
+		try {
+			var parsedDataObj = Papa.parse(csvStr, getDefaultParserSettings());
+			if (parsedDataObj.errors.length > 0) {
+				errorArray = errorArray.concat(parsedDataObj.errors);
+			}
+			parsedData = parsedDataObj.data;
+		}
+		//return error if cannot parse data from budget file
+		catch(e) {
+			e.message = 'Attempt to parse budgetFilePath file failed: ' + e.message;
+			return reject(e);
+		}
+		try {
+			assertBudgetInputArrayIsValid(parsedData);
 		}
 		catch(e) {
-			e.message = 'Attempt to read thresholdFilePath file failed: ' + e.message;
-			console.warn(e);
-			errorArray.push(e);
+			return reject(e);
+		}
+		//if provided, try to read file at thresholdFilePath
+		if ('string' === typeof thresholdFilePath && '' !== thresholdFilePath) {
+			try {
+				thresholdStr = fs.readFileSync(thresholdFilePath).toString();
+			}
+			catch(e) {
+				e.message = 'Attempt to read thresholdFilePath file failed: ' + e.message;
+				console.warn(e);
+				errorArray.push(e);
+				thresholdStr = null;
+			}
+		}
+		else {
 			thresholdStr = null;
 		}
-	}
-	else {
-		thresholdStr = null;
-	}
-	//if valid data could be read from thresholdFilePath, try parsing JSON
-	//if data couldn't be read, or file not provided, or parse fails, use default thresholds
-	if (thresholdStr !== null) {
-		try {
-			var parsedThresholdsData = Papa.parse(thresholdStr, getDefaultParserSettings());
-			if (parsedThresholdsData.errors.length > 0) {
-				errorArray = errorArray.concat(parsedThresholdsData.errors);
+		//if valid data could be read from thresholdFilePath, try parsing JSON
+		//if data couldn't be read, or file not provided, or parse fails, use default thresholds
+		if (thresholdStr !== null) {
+			try {
+				var parsedThresholdsData = Papa.parse(thresholdStr, getDefaultParserSettings());
+				if (parsedThresholdsData.errors.length > 0) {
+					errorArray = errorArray.concat(parsedThresholdsData.errors);
+				}
+				parsedThresholds = parsedThresholdsData.data;
 			}
-			parsedThresholds = parsedThresholdsData.data;
+			catch(e) {
+				e.message = 'Attempt to parse thresholdFilePath file failed: ' + e.message;
+				console.warn(e);
+				errorArray.push(e);
+				parsedThresholds = getDefaultThresholds();
+			}
 		}
-		catch(e) {
-			e.message = 'Attempt to parse thresholdFilePath file failed: ' + e.message;
-			console.warn(e);
-			errorArray.push(e);
+		else {
 			parsedThresholds = getDefaultThresholds();
 		}
-	}
-	else {
-		parsedThresholds = getDefaultThresholds();
-	}
-	// create array of objs for each budget array item from input
-	budgetObjArray = [];
-	for (let i = 0; i < parsedData.length; i++) {
-		let thisArgs = parsedData[i];
-		var localThresh;
-		//attempt to parse thresholds from filepath given in budget line item if given
-		if ('string' !== typeof thisArgs.thresholds || '' === thisArgs.thresholds) {
-			if ('string' === typeof thisArgs.thresholds_filepath && '' !== thisArgs.thresholds_filepath) {
-				localThresh = parseJsonFile(thisArgs.thresholds_filepath);
-				if ('object' !== typeof localThresh) {
-					errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
-					thisArgs.thresholds = parsedThresholds;
-				}
-				else if (localThresh instanceof Error) {
-					errorArray.push(localThresh);
-					thisArgs.thresholds = parsedThresholds;
-				}
-				else if (localThresh[0] instanceof Error) {
-					errorArray = errorArray.concat(localThresh.errors);
-					thisArgs.thresholds = parsedThresholds;
+		// create array of objs for each budget array item from input
+		budgetObjArray = [];
+		for (let i = 0; i < parsedData.length; i++) {
+			let thisArgs = parsedData[i];
+			var localThresh;
+			//attempt to parse thresholds from filepath given in budget line item if given
+			if ('string' !== typeof thisArgs.thresholds || '' === thisArgs.thresholds) {
+				if ('string' === typeof thisArgs.thresholds_filepath && '' !== thisArgs.thresholds_filepath) {
+					localThresh = parseJsonFile(thisArgs.thresholds_filepath);
+					if ('object' !== typeof localThresh) {
+						errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
+						thisArgs.thresholds = parsedThresholds;
+					}
+					else if (localThresh instanceof Error) {
+						errorArray.push(localThresh);
+						thisArgs.thresholds = parsedThresholds;
+					}
+					else if (localThresh[0] instanceof Error) {
+						errorArray = errorArray.concat(localThresh.errors);
+						thisArgs.thresholds = parsedThresholds;
+					}
+					else {
+						thisArgs.thresholds = localThresh;
+					}
 				}
 				else {
-					thisArgs.thresholds = localThresh;
+					thisArgs.thresholds = parsedThresholds;
 				}
+			}
+			else if ('string' === typeof thisArgs.thresholds && '' !== thisArgs.thresholds) {
+				try {
+					localThresh = JSON.parse(thisArgs.thresholds);
+				}
+				catch(e) {
+					errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
+					localThresh = parsedThresholds;
+				}
+				thisArgs.thresholds = localThresh;
+			
 			}
 			else {
 				thisArgs.thresholds = parsedThresholds;
 			}
-		}
-		else if ('string' === typeof thisArgs.thresholds && '' !== thisArgs.thresholds) {
 			try {
-				localThresh = JSON.parse(thisArgs.thresholds);
+				budgetObjArray.push(makeSingleScopeBudget(thisArgs, returnDebug));
 			}
 			catch(e) {
-				errorArray.push(new Error('Unable to parse local thresholds for budget #' + i + ', using global'));
-				localThresh = parsedThresholds;
+				errorArray.push(e);
 			}
-			thisArgs.thresholds = localThresh;
-			
-		}
-		else {
-			thisArgs.thresholds = parsedThresholds;
-		}
-		try {
-			budgetObjArray.push(makeSingleScopeBudget(thisArgs, returnDebug));
-		}
-		catch(e) {
-			errorArray.push(e);
-		}
-		if ((i + 1) >= parsedData.length) {
-			return {
-				budgets: budgetObjArray,
-				errors: errorArray
+			if ((i + 1) >= parsedData.length) {
+				return resolve({
+					budgets: budgetObjArray,
+					errors: errorArray
+				});
 			}
 		}
-	}
+	});
 }
 
 function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv) {
@@ -445,25 +447,28 @@ function createBudgetsFromCsv(parentId, budgetsCsv, thresholdCsv) {
 		return Promise.reject(new Error('invalid parentId passed to createBudgetsFromCsv; must be string in format "billingAccounts/000000-000000-000000"'));
 	}
 	return new Promise((resolve, reject) => {
-		var budgetsAndErrors = parseCsvToBudgets(budgetsCsv, thresholdCsv);
-		if (!budgetsAndErrors || !budgetsAndErrors.budgets || budgetsAndErrors.budgets.length < 1) {
-			if (budgetsAndErrors.errors && Array.isArray(budgetsAndErrors.errors) && budgetsAndErrors.errors.length < 1) {
-// 				return reject(new Error('Unable to create budget objects for... reasons'));
-				return reject(budgetsAndErrors);
+		return parseCsvToBudgets(budgetsCsv, thresholdCsv)
+		.then((resultObj) => {
+			if (!resultObj || !resultObj.budgets || resultObj.budgets.length < 1) {
+				if (resultObj.errors && Array.isArray(resultObj.errors) && resultObj.errors.length < 1) {
+					return reject(resultObj.errors);
+				}
+				else {
+					return reject(resultObj);
+				}
 			}
 			else {
-				return reject(budgetsAndErrors.errors);
+				return createBudgetsFromArray(resultObj.budgets, parentId)
+				.then((resArr) => {
+					return resolve(resArr);
+				})
+				.catch((e) => {
+					return reject(e);
+				});
 			}
-		}
-		else {
-			return createBudgetsFromArray(budgetsAndErrors.budgets, parentId)
-			.then((resArr) => {
-				return resolve(resArr);
-			})
-			.catch((e) => {
-				return reject(e);
-			});
-		}
+		}).catch((errorOrErrArr) => {
+			return reject(errorOrErrArr);
+		});
 	});
 }
 
