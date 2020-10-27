@@ -38,7 +38,8 @@ class ThresholdRules {
 	getAllRules() {
 		var allRules = [];
 		for (let i = 0; i < this.rulesArray.length; i++) {
-			let thisRule = new Threshold(parseFloat(this.rulesArray[i].percentage), this.rulesArray[i].use_forecasted);
+			let thisPct = ('number' === typeof this.rulesArray[i].percent) ? this.rulesArray[i].percent : parseFloat(this.rulesArray[i].percent);
+			let thisRule = new Threshold(thisPct, this.rulesArray[i].useForecasted);
 			allRules.push(thisRule);
 			if ((i + 1) >= this.rulesArray.length) {
 				return allRules;
@@ -81,7 +82,7 @@ class Money {
 		var amtNum = parseFloat(amount);
 		var amtArr = amount.split('.');
 		const sign = Math.sign(amtNum);
-		this.units = amtArr[0];
+		this.units = parseInt(amtArr[0]);
 		var nanos = ('string' === typeof amtArr[1]) ?
 			amtArr[1].substring(0,9) :	// truncated, not rounded!
 			0;
