@@ -39,6 +39,7 @@ class ThresholdRules {
 		var allRules = [];
 		for (let i = 0; i < this.rulesArray.length; i++) {
 			let thisPct = ('number' === typeof this.rulesArray[i].percent) ? this.rulesArray[i].percent : parseFloat(this.rulesArray[i].percent);
+			thisPct = thisPct/100;
 			let thisRule = new Threshold(thisPct, this.rulesArray[i].useForecasted);
 			allRules.push(thisRule);
 			if ((i + 1) >= this.rulesArray.length) {
